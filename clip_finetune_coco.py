@@ -1,5 +1,4 @@
 import torch
-import random
 import json
 import os
 from PIL import Image
@@ -26,10 +25,9 @@ with open(ANN_FILE, "r") as f:
 
 images = {img["id"]: img["file_name"] for img in coco["images"]}
 annotations = coco["annotations"][:MAX_SAMPLES]
-all_captions = [ann["caption"] for ann in annotations]
 
 # ---------------- DATASET ----------------
-class ClipDataset(Dataset):
+class CocoClipDataset(Dataset):
     def __init__(self, annotations):
         self.annotations = annotations
 
@@ -40,39 +38,30 @@ class ClipDataset(Dataset):
         ann = self.annotations[idx]
         image_path = os.path.join(IMG_DIR, images[ann["image_id"]])
         image = Image.open(image_path).convert("RGB")
+        caption = ann["caption"]
+        return image, caption
 
-        # Positive or negative pair
-        if random.random() > 0.5:
-            text = ann["caption"]
-            label = 1
-        else:
-            text = random.choice(all_captions)
-            label = 0
-
-        return image, text, label
-
-# ---------------- COLLATE FUNCTION ----------------
-def clip_collate(batch):
-    images, texts, labels = zip(*batch)
+# ---------------- COLLATE ----------------
+def clip_collate_fn(batch):
+    images, texts = zip(*batch)
     inputs = processor(
         text=list(texts),
         images=list(images),
-        padding=True,
-        return_tensors="pt"
+        return_tensors="pt",
+        padding=True
     )
-    labels = torch.tensor(labels)
-    return inputs, labels
+    return inputs
 
 # ---------------- MODEL ----------------
 processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
 model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(DEVICE)
 
-dataset = ClipDataset(annotations)
+dataset = CocoClipDataset(annotations)
 loader = DataLoader(
     dataset,
     batch_size=BATCH_SIZE,
     shuffle=True,
-    collate_fn=clip_collate
+    collate_fn=clip_collate_fn
 )
 
 optimizer = AdamW(model.parameters(), lr=LR)
@@ -82,36 +71,44 @@ loss_fn = torch.nn.CrossEntropyLoss()
 for epoch in range(EPOCHS):
     model.train()
     total_loss = 0
-    correct = 0
-    total = 0
+    total_acc = 0
+    steps = 0
 
     loop = tqdm(loader, desc=f"Epoch {epoch+1}")
-    for batch, labels in loop:
+    for batch in loop:
         batch = {k: v.to(DEVICE) for k, v in batch.items()}
-        labels = labels.to(DEVICE)
 
         outputs = model(**batch)
-        logits = outputs.logits_per_image
 
-        loss = loss_fn(logits, labels)
+        logits_img = outputs.logits_per_image   # [B, B]
+        logits_txt = outputs.logits_per_text    # [B, B]
+
+        labels = torch.arange(logits_img.size(0)).to(DEVICE)
+
+        loss_i = loss_fn(logits_img, labels)
+        loss_t = loss_fn(logits_txt, labels)
+        loss = (loss_i + loss_t) / 2
+
         loss.backward()
         optimizer.step()
         optimizer.zero_grad()
 
-        preds = logits.argmax(dim=1)
-        correct += (preds == labels).sum().item()
-        total += labels.size(0)
-        total_loss += loss.item()
+        # Accuracy
+        preds = logits_img.argmax(dim=1)
+        acc = (preds == labels).float().mean().item()
 
-        acc = correct / total
+        total_loss += loss.item()
+        total_acc += acc
+        steps += 1
+
         loop.set_postfix(loss=f"{loss.item():.4f}", acc=f"{acc:.4f}")
 
     print(f"\nEpoch {epoch+1} Summary")
-    print(f"Avg Loss: {total_loss/len(loader):.4f}")
-    print(f"Accuracy: {acc:.4f}")
+    print(f"Avg Loss: {total_loss/steps:.4f}")
+    print(f"Avg Accuracy: {total_acc/steps:.4f}")
 
 # ---------------- SAVE ----------------
-model.save_pretrained("clip_finetuned")
-processor.save_pretrained("clip_finetuned")
+model.save_pretrained("clip_finetuned_correct")
+processor.save_pretrained("clip_finetuned_correct")
 
-print("✅ CLIP fine‑tuning completed successfully")
+print("✅ CLIP fine‑tuning finished successfully")
