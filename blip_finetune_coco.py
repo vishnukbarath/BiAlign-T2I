@@ -3,7 +3,8 @@ from torch.utils.data import Dataset, DataLoader
 from PIL import Image
 import json
 import os
-from transformers import BlipProcessor, BlipForConditionalGeneration, AdamW
+from transformers import BlipProcessor, BlipForConditionalGeneration
+from torch.optim import AdamW
 from tqdm import tqdm
 
 # -----------------------------
@@ -13,10 +14,10 @@ DATA_ROOT = r"C:\Users\vishn\Documents\pw2\data"
 IMG_DIR = os.path.join(DATA_ROOT, "train2017")
 ANN_FILE = os.path.join(DATA_ROOT, "annotations", "captions_train2017.json")
 
-BATCH_SIZE = 8          # safe start
-EPOCHS = 1              # start with 1 (increase later)
+BATCH_SIZE = 8
+EPOCHS = 1
 LR = 5e-5
-MAX_SAMPLES = 5000      # IMPORTANT: start small
+MAX_SAMPLES = 5000
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -46,22 +47,30 @@ class CocoCaptionDataset(Dataset):
         image = Image.open(image_path).convert("RGB")
         caption = ann["caption"]
 
-        inputs = self.processor(
-            image,
-            caption,
+        encoding = self.processor(
+            images=image,
+            text=caption,
             return_tensors="pt",
             padding="max_length",
             truncation=True,
             max_length=40
         )
 
-        inputs = {k: v.squeeze(0) for k, v in inputs.items()}
-        return inputs
+        encoding = {k: v.squeeze(0) for k, v in encoding.items()}
+
+        # 🔥 CRITICAL FIX: labels must be provided
+        encoding["labels"] = encoding["input_ids"]
+        del encoding["input_ids"]
+
+        return encoding
 
 # -----------------------------
 # LOAD MODEL
 # -----------------------------
-processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
+processor = BlipProcessor.from_pretrained(
+    "Salesforce/blip-image-captioning-base"
+)
+
 model = BlipForConditionalGeneration.from_pretrained(
     "Salesforce/blip-image-captioning-base"
 ).to(DEVICE)
@@ -75,10 +84,12 @@ optimizer = AdamW(model.parameters(), lr=LR)
 # TRAINING LOOP
 # -----------------------------
 model.train()
+
 for epoch in range(EPOCHS):
     loop = tqdm(dataloader, desc=f"Epoch {epoch+1}")
     for batch in loop:
         batch = {k: v.to(DEVICE) for k, v in batch.items()}
+
         outputs = model(**batch)
         loss = outputs.loss
 
@@ -86,7 +97,7 @@ for epoch in range(EPOCHS):
         optimizer.step()
         optimizer.zero_grad()
 
-        loop.set_postfix(loss=loss.item())
+        loop.set_postfix(loss=f"{loss.item():.4f}")
 
 # -----------------------------
 # SAVE MODEL
