@@ -58,9 +58,12 @@ class CocoCaptionDataset(Dataset):
 
         encoding = {k: v.squeeze(0) for k, v in encoding.items()}
 
-        # 🔥 CRITICAL FIX: labels must be provided
-        encoding["labels"] = encoding["input_ids"]
-        del encoding["input_ids"]
+        # ✅ CORRECT: keep input_ids AND create labels
+        labels = encoding["input_ids"].clone()
+
+        # Ignore padding tokens in loss
+        labels[labels == self.processor.tokenizer.pad_token_id] = -100
+        encoding["labels"] = labels
 
         return encoding
 
