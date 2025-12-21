@@ -55,4 +55,43 @@ class CocoCaptionDataset(Dataset):
             max_length=40
         )
 
+        inputs = {k: v.squeeze(0) for k, v in inputs.items()}
+        return inputs
 
+# -----------------------------
+# LOAD MODEL
+# -----------------------------
+processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
+model = BlipForConditionalGeneration.from_pretrained(
+    "Salesforce/blip-image-captioning-base"
+).to(DEVICE)
+
+dataset = CocoCaptionDataset(annotations, processor)
+dataloader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True)
+
+optimizer = AdamW(model.parameters(), lr=LR)
+
+# -----------------------------
+# TRAINING LOOP
+# -----------------------------
+model.train()
+for epoch in range(EPOCHS):
+    loop = tqdm(dataloader, desc=f"Epoch {epoch+1}")
+    for batch in loop:
+        batch = {k: v.to(DEVICE) for k, v in batch.items()}
+        outputs = model(**batch)
+        loss = outputs.loss
+
+        loss.backward()
+        optimizer.step()
+        optimizer.zero_grad()
+
+        loop.set_postfix(loss=loss.item())
+
+# -----------------------------
+# SAVE MODEL
+# -----------------------------
+model.save_pretrained("blip_finetuned")
+processor.save_pretrained("blip_finetuned")
+
+print("✅ BLIP fine-tuning completed and model saved.")
