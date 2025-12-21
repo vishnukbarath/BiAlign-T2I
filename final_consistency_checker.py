@@ -8,70 +8,98 @@ from transformers import (
     CLIPModel
 )
 
-# =========================
+# ===============================
 # DEVICE
-# =========================
+# ===============================
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using device: {device}")
 
-# =========================
-# LOAD BLIP (Caption Model)
-# =========================
+# ===============================
+# LOAD BLIP
+# ===============================
 blip_processor = BlipProcessor.from_pretrained(
     "Salesforce/blip-image-captioning-base"
 )
 blip_model = BlipForConditionalGeneration.from_pretrained(
     "Salesforce/blip-image-captioning-base"
 ).to(device)
+blip_model.eval()
 
-# =========================
-# LOAD CLIP (Similarity Model)
-# =========================
+# ===============================
+# LOAD CLIP
+# ===============================
 clip_processor = CLIPProcessor.from_pretrained(
     "openai/clip-vit-base-patch32"
 )
 clip_model = CLIPModel.from_pretrained(
     "openai/clip-vit-base-patch32"
 ).to(device)
+clip_model.eval()
 
-# =========================
+# ===============================
 # CONSISTENCY CHECK FUNCTION
-# =========================
+# ===============================
 def consistency_check(image_path, user_text):
     image = Image.open(image_path).convert("RGB")
 
-    # ---- BLIP: Image → Caption ----
-    blip_inputs = blip_processor(
-        image, return_tensors="pt"
-    ).to(device)
+    # ---------- BLIP: Caption ----------
+    with torch.no_grad():
+        blip_inputs = blip_processor(
+            image, return_tensors="pt"
+        ).to(device)
 
-    caption_ids = blip_model.generate(
-        **blip_inputs,
-        max_new_tokens=30
-    )
+        caption_ids = blip_model.generate(
+            **blip_inputs,
+            max_new_tokens=30
+        )
 
-    caption = blip_processor.decode(
-        caption_ids[0],
-        skip_special_tokens=True
-    )
+        caption = blip_processor.decode(
+            caption_ids[0],
+            skip_special_tokens=True
+        )
 
-    # ---- CLIP: Image ↔ Text Similarity ----
-    clip_inputs = clip_processor(
-        text=[user_text],
-        images=image,
-        return_tensors="pt",
-        padding=True
-    ).to(device)
+    # ---------- CLIP: Relative Similarity ----------
+    with torch.no_grad():
+        # Image embedding
+        img_inputs = clip_processor(
+            images=image,
+            return_tensors="pt"
+        ).to(device)
 
-    outputs = clip_model(**clip_inputs)
+        image_embed = clip_model.get_image_features(**img_inputs)
+        image_embed = image_embed / image_embed.norm(dim=-1, keepdim=True)
 
-    similarity_score = outputs.logits_per_image.softmax(dim=1)[0][0].item()
-    similarity_percentage = similarity_score * 100
+        # User text embedding
+        user_inputs = clip_processor(
+            text=[user_text],
+            return_tensors="pt",
+            padding=True
+        ).to(device)
 
-    # ---- Decision ----
-    if similarity_percentage >= 75:
+        user_embed = clip_model.get_text_features(**user_inputs)
+        user_embed = user_embed / user_embed.norm(dim=-1, keepdim=True)
+
+        # BLIP caption embedding
+        caption_inputs = clip_processor(
+            text=[caption],
+            return_tensors="pt",
+            padding=True
+        ).to(device)
+
+        caption_embed = clip_model.get_text_features(**caption_inputs)
+        caption_embed = caption_embed / caption_embed.norm(dim=-1, keepdim=True)
+
+        # Cosine similarities
+        sim_user = (image_embed @ user_embed.T).item()
+        sim_caption = (image_embed @ caption_embed.T).item()
+
+        # Relative consistency score
+        consistency_score = sim_user / sim_caption
+
+    # ---------- DECISION ----------
+    if consistency_score >= 0.75:
         verdict = "MATCH"
-    elif similarity_percentage >= 40:
+    elif consistency_score >= 0.40:
         verdict = "PARTIAL MATCH"
     else:
         verdict = "MISMATCH"
@@ -80,22 +108,19 @@ def consistency_check(image_path, user_text):
         "Image": os.path.basename(image_path),
         "User Prompt": user_text,
         "BLIP Caption": caption,
-        "CLIP Similarity (%)": round(similarity_percentage, 2),
+        "Similarity (User)": round(sim_user, 3),
+        "Similarity (Caption)": round(sim_caption, 3),
+        "Consistency Score": round(consistency_score, 3),
         "Verdict": verdict
     }
 
-# =========================
-# MAIN (BATCH TEST)
-# =========================
+# ===============================
+# MAIN (COCO val2017 TEST)
+# ===============================
 if __name__ == "__main__":
 
-    # 🔹 COCO val2017 path
     image_dir = r"C:\Users\vishn\Documents\pw2\data\val2017"
-
-    # 🔹 User text prompt
-    user_prompt = "A yellow food container"
-
-    # 🔹 Number of images to test
+    user_prompt = "bedroom bed window nightstand lamp cozy"
     num_images = 5
 
     images = os.listdir(image_dir)[:num_images]
@@ -108,5 +133,5 @@ if __name__ == "__main__":
         result = consistency_check(img_path, user_prompt)
 
         print("\n----------------------------------")
-        for key, value in result.items():
-            print(f"{key}: {value}")
+        for k, v in result.items():
+            print(f"{k}: {v}")
