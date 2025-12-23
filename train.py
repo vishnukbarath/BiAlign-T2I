@@ -20,7 +20,8 @@ blip_model = BlipForConditionalGeneration.from_pretrained(
     "Salesforce/blip-image-captioning-base"
 ).to(device)
 
-# ---------------- LOAD IMAGE ----------------
+# -------------
+# --- LOAD IMAGE ----------------
 image = Image.open(image_path).convert("RGB")
 
 # ---------------- BLIP CAPTION ----------------
