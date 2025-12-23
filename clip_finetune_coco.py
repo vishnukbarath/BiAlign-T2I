@@ -7,7 +7,13 @@ from transformers import CLIPProcessor, CLIPModel
 from torch.optim import AdamW
 from tqdm import tqdm
 
-# ---------------- CONFIG ----------------
+# -------------
+# 
+# 
+# 
+# 
+# 
+# --- CONFIG ----------------
 DATA_ROOT = r"C:\Users\vishn\Documents\pw2\data"
 IMG_DIR = os.path.join(DATA_ROOT, "train2017")
 ANN_FILE = os.path.join(DATA_ROOT, "annotations", "captions_train2017.json")
