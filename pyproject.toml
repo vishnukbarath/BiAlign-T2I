@@ -16,3 +16,6 @@ dependencies = [
  "opencv-python",
  "ultralytics",
 ]
+
+[project.scripts]
+consistency = "consistency.cli:main"

@@ -23,4 +23,12 @@ pip install -r requirements.txt
 python examples\run_example.py --image data\test2017\000000000139.jpg --prompt "A dog running in a park"
 ```
 
+Demo script
+
+```bash
+python examples\run_demo.py --out-dir examples\demo_report
+```
+
+This will create two demo images, run the evaluation pipeline, produce `results.csv` and `report.html` under `examples/demo_report`.
+
 See `docs/usage.md` for more details.
