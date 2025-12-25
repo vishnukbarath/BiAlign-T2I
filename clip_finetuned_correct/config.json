@@ -13,6 +13,7 @@
   "text_config": {
     "bos_token_id": 0,
     "dropout": 0.0,
+    "hidden_size": 512,
     "eos_token_id": 2,
     "model_type": "clip_text_model"
   },
