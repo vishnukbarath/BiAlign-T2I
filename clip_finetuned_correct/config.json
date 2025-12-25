@@ -18,6 +18,7 @@
     "model_type": "clip_text_model"
   },
   "torch_dtype": "float32",
+  "tokenizer_class": "CLIPTokenizer",
   "transformers_version": "4.44.2",
   "vision_config": {
     "dropout": 0.0,
