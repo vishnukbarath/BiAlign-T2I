@@ -1,0 +1,11 @@
+torch>=1.13
+transformers>=4.30
+Pillow
+numpy
+ftfy
+tqdm
+opencv-python
+ultralytics
+scikit-image
+matplotlib
+pytest
