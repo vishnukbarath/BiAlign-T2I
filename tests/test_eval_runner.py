@@ -17,3 +17,8 @@ def test_eval_runner_csv_and_results(tmp_path):
     csv_path = tmp_path / "res.csv"
     er.run(items, output_csv=str(csv_path))
     assert csv_path.exists()
+
+    # test saving visuals
+    rep_dir = tmp_path / "rep"
+    er.run(items, save_visuals=True, report_dir=str(rep_dir))
+    assert (rep_dir / "report.html").exists()
