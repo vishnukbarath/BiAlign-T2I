@@ -134,3 +134,29 @@ The codebase is organized as a small Python package under `src/consistency` with
 
 **Commit 4/5:** Add developer guide, tests, and performance tips.
 
+---
+
+## Contribution & release checklist
+
+- Add a clear issue describing the feature or bug.
+- Open a PR with tests and documentation updates.
+- Ensure `pytest -q` passes locally and in CI.
+- Add an entry to `CHANGELOG.md` for notable changes.
+- For releases: bump version in `pyproject.toml`, tag a release, and prepare a short release note.
+
+### Citation & research use
+
+If you use this code in academic work, please cite the project in your paper and include a short description of the evaluation procedure used.
+
+### Roadmap
+
+- Improve saliency via cross-attention maps for transformer-based vision models.
+- Add support for Detectron2 as an alternative detector backend.
+- Add calibration utilities to map composite scores to interpretable probabilities.
+
+**Commit 5/5:** Add contribution, release checklist, citation, and roadmap.
+
+---
+
+Thank you for using the Semantic Alignment toolkit! Contributions and feedback are welcome — open an issue or a PR to get started.
+
