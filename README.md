@@ -84,3 +84,30 @@ PYTHONPATH=src pytest -q
 
 **Commit 2/5:** Add installation and quick start instructions.
 
+---
+
+## Project architecture & components
+
+The codebase is organized as a small Python package under `src/consistency` with the following main components:
+
+- `data` — dataset loaders (COCO, JSONL stream) and collate utilities.
+- `clip` — CLIP-based global scorer and embedding caching utilities.
+- `detector` — object detector wrapper (YOLOv8 by default) returning bboxes, labels, and scores.
+- `attention` — saliency map utilities (input-gradient saliency) to localize the prompt's influence.
+- `regions` — region cropping and region-level CLIP scoring.
+- `score` — composite scorer combining global, region, attention, and detector agreement into one score.
+- `eval` — evaluation runner, metrics, and CSV reporting.
+- `visualize` — heatmap overlays and HTML report generator.
+- `cli` — simple command line interface for demo and single-image evaluation.
+
+### Typical data flow
+
+1. Load an (image, prompt) pair from the dataset.
+2. Compute a global CLIP similarity.
+3. Detect objects to produce bboxes and scores.
+4. For each bbox, crop and compute region CLIP similarity.
+5. Compute saliency map for prompt; measure mean saliency inside bboxes.
+6. Combine signals with configurable weights to produce a single `composite` score.
+
+**Commit 3/5:** Add architecture and components documentation.
+
