@@ -50,3 +50,37 @@ The goal is to provide an extensible, testable, and reproducible framework for e
 
 **Commit 1/5:** Add project overview and high-level goals.
 
+---
+
+## Installation & Quick start
+
+1. Create a virtual environment and install dependencies:
+
+```bash
+python -m venv .venv
+.\.venv\Scripts\activate  # Windows
+source .venv/bin/activate   # macOS / Linux
+pip install -r requirements.txt
+pip install -e .            # optional - install package for local dev
+```
+
+2. Run the interactive example:
+
+```bash
+python examples/run_example.py --image data/test2017/000000000139.jpg --prompt "A dog running in a park"
+```
+
+3. Run the quick demo (creates a demo report):
+
+```bash
+python examples/run_demo.py --out-dir examples/demo_report
+```
+
+4. Run tests:
+
+```bash
+PYTHONPATH=src pytest -q
+```
+
+**Commit 2/5:** Add installation and quick start instructions.
+
