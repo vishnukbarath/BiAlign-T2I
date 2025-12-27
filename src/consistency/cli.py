@@ -7,11 +7,43 @@ from .eval import EvaluationRunner
 
 
 def _run_demo(args: argparse.Namespace):
+    """Efficient demo runner using internal APIs.
+
+    This avoids importing/running the script module and directly uses the
+    project's `EvaluationRunner`, creating images in-memory and saving only
+    the artifacts (results CSV + report) to the requested output directory.
+    """
     out = Path(args.out_dir)
     out.mkdir(parents=True, exist_ok=True)
-    # re-use examples/run_demo.py logic
-    from examples.run_demo import main as run_demo_main
-    run_demo_main(str(out))
+
+    # create a small demo data folder (optional, helpful for reproducibility)
+    demo_dir = out / "demo_data"
+    demo_dir.mkdir(parents=True, exist_ok=True)
+
+    from PIL import Image
+    from .eval import EvaluationRunner
+
+    # create two example images in-memory and save copies for audit
+    img_green = Image.new("RGB", (128, 128), color=(0, 255, 0))
+    img_red = Image.new("RGB", (128, 128), color=(255, 0, 0))
+    img_green_path = demo_dir / "green.png"
+    img_red_path = demo_dir / "red.png"
+    img_green.save(img_green_path)
+    img_red.save(img_red_path)
+
+    items = [
+        {"image": img_green, "prompt": "a green square", "id": "g1", "image_path": str(img_green_path)},
+        {"image": img_red, "prompt": "a red square", "id": "r1", "image_path": str(img_red_path)},
+    ]
+
+    runner = EvaluationRunner()
+
+    # Run evaluation: produces results.csv and a report with overlays
+    csv_path = str(out / "results.csv")
+    runner.run(items, output_csv=csv_path, save_visuals=True, report_dir=str(out))
+
+    print(f"Wrote: {csv_path}")
+    print(f"Wrote: {out / 'report.html'}")
 
 
 def _evaluate(args: argparse.Namespace):
