@@ -23,3 +23,25 @@ jobs:
       - name: Run tests
         run: |
           pytest -q
+
+  demo:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Install demo deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -e .
+      - name: Run demo script (smoke)
+        run: |
+          python examples/run_demo.py --out-dir demo_output
+      - name: List demo artifacts
+        run: |
+          ls -la demo_output || true
+          echo "Demo finished"
