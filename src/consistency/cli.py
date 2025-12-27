@@ -23,6 +23,10 @@ def _run_demo(args: argparse.Namespace):
     from PIL import Image
     from .eval import EvaluationRunner
 
+
+
+
+
     # create two example images in-memory and save copies for audit
     img_green = Image.new("RGB", (128, 128), color=(0, 255, 0))
     img_red = Image.new("RGB", (128, 128), color=(255, 0, 0))
@@ -37,6 +41,9 @@ def _run_demo(args: argparse.Namespace):
     ]
 
     runner = EvaluationRunner()
+
+
+
 
     # Run evaluation: produces results.csv and a report with overlays
     csv_path = str(out / "results.csv")
@@ -57,6 +64,8 @@ def _evaluate(args: argparse.Namespace):
         csv_path = str(Path(out_dir) / "results.csv")
     results = runner.run(items, output_csv=csv_path, save_visuals=bool(out_dir), report_dir=out_dir if out_dir else None)
     print(results)
+
+
 
 
 def main(argv: Optional[List[str]] = None):
