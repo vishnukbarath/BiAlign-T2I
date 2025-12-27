@@ -111,3 +111,26 @@ The codebase is organized as a small Python package under `src/consistency` with
 
 **Commit 3/5:** Add architecture and components documentation.
 
+---
+
+## Developer guide
+
+### Running tests and CI
+
+- Run unit tests locally: `PYTHONPATH=src pytest -q`
+- CI uses GitHub Actions (`.github/workflows/ci.yml`) to run tests and a demo smoke test.
+
+### Adding a new detector or model
+
+- Implement a wrapper following `detector/wrapper.py` interface returning `[{"bbox": [x1,y1,x2,y2], "score": float, "label": int}]`.
+- Add tests under `tests/` to validate output format and behavior.
+- If adding a new CLIP or embedding model, implement a new `CLIPScorer` or extend it to support alternative backends.
+
+### Performance tips
+
+- Reuse embeddings where possible with caching (`CLIPScorer` supports simple in-memory caching).
+- Batch inputs to the CLIP model to maximize throughput.
+- If running large-scale evaluation, use the streaming `PromptImageIterableDataset` to avoid memory pressure.
+
+**Commit 4/5:** Add developer guide, tests, and performance tips.
+
