@@ -3,12 +3,10 @@ import clip
 from PIL import Image
 from transformers import BlipProcessor, BlipForConditionalGeneration
 
-# ---------------- CONFIG ----------------
 image_path = r"C:\Users\vishn\Downloads\img-hero-slide-4.jpg.webp"
 user_prompt = "a large pool with a view of the ocean"
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-# ---------------- LOAD MODELS ----------------
 print("Using device:", device)
 
 # CLIP
