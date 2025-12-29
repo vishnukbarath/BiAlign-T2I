@@ -2,7 +2,6 @@ from PIL import Image
 import numpy as np
 from consistency.attention import AttentionMapper
 
-
 def make_two_color_image(w=64, h=32):
     img = Image.new("RGB", (w, h))
     for x in range(w):
